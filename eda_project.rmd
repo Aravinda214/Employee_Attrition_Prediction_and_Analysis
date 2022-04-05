@@ -1,0 +1,71 @@
+---
+title: "Essentials of Data Analytics"
+author: ""
+date: "21-01-2022"
+output:
+  word_document: default
+subtitle: Week-2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Import Dataset
+```{r, echo=TRUE}
+data <- read.csv('C:/Personal/Aravinda Stuff/Sem 6th/Essentials of Data Analytics/Project/HR_Employee_Data.csv')
+```
+
+# Summary of the Data
+```{r, echo=TRUE}
+head(data)
+str(data)
+library(dplyr) 
+glimpse(data)
+summary(data)
+```
+
+
+# Check for Null Values
+```{r, echo=TRUE}
+cbind(lapply(lapply(data, is.na), sum))
+sum(is.na(data))
+```
+
+# Data Cleaning
+```{r}
+data$satisfaction_level<-gsub("%","",as.character(data$satisfaction_level))
+data$satisfaction_level=as.integer(data$satisfaction_level)
+head(data)
+```
+
+
+```{r, echo=TRUE}
+data$last_evaluation<-gsub("%","",as.character(data$last_evaluation))
+data$last_evaluation=as.integer(data$last_evaluation)
+head(data)
+```
+
+```{r, echo=TRUE}
+
+```
+
+```{r, echo=TRUE}
+
+```
+
+```{r, echo=TRUE}
+
+```
+
+```{r, echo=TRUE}
+
+```
+
+```{r, echo=TRUE}
+
+```
+
+```{r, echo=TRUE}
+
+```
