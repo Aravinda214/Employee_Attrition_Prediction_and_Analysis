@@ -1,0 +1,160 @@
+---
+title: "Essentials of Data Analytics"
+author: ""
+output: html_document
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Import Dataset
+```{r, echo=TRUE}
+data <- read.csv('HR_Employee_Data.csv')
+```
+
+# Summary of the Data
+```{r, echo=TRUE}
+head(data)
+str(data)
+library(dplyr) 
+glimpse(data)
+summary(data)
+```
+
+
+# Check for Null Values
+```{r, echo=TRUE}
+cbind(lapply(lapply(data, is.na), sum))
+sum(is.na(data))
+```
+
+# Data Cleaning
+```{r}
+data$satisfaction_level<-gsub("%","",as.character(data$satisfaction_level))
+data$satisfaction_level=as.integer(data$satisfaction_level)
+head(data)
+```
+
+
+```{r, echo=TRUE}
+data$last_evaluation<-gsub("%","",as.character(data$last_evaluation))
+data$last_evaluation=as.integer(data$last_evaluation)
+head(data)
+```
+
+# 1)Correlation plot
+```{r, echo=TRUE}
+#install.packages("remotes")
+#remotes::install_github("kmaheshkulkarni/corrly")
+library(plotly)
+library(corrly)
+matrixly(data[2:9])
+```
+
+# 2) People who have left in each department
+```{r, echo=TRUE}
+#install.packages('ecodist')
+library(plotly)
+library(dplyr)
+library(ecodist)
+ans=crosstab(data$Department,data$left)
+Department=rownames(ans)
+fig <- plot_ly(ans,x = ~Department, y = ~X0, type = 'bar', name = 'Working for Company')
+fig<- fig %>% add_trace(y =~X1, name = 'Left the Company')
+fig <- fig %>% layout(title="Employees who have left based on department", yaxis = list(title = 'Count'), barmode = 'group')
+fig
+
+```
+
+# 3) People who have left based on salary
+```{r, echo=TRUE}
+#install.packages('ecodist')
+library(plotly)
+library(dplyr)
+library(ecodist)
+ans=crosstab(data$salary,data$left)
+Salary=rownames(ans)
+fig <- plot_ly(ans,x = ~Salary, y = ~X0, type = 'bar', name = 'Working for Company')
+fig<- fig %>% add_trace(y =~X1, name = 'Left the Company')
+fig <- fig %>% layout(title="Employees who have left based on salary", yaxis = list(title = 'Count'), barmode = 'group')
+fig
+```
+
+# 4) Area plot of time spent in company compared with those who have nand have not left 
+```{r, echo=TRUE}
+ans=crosstab(data$time_spend_company,data$left)
+ans
+Time_Spent=rownames(ans)
+Time_Spent
+fig <- plot_ly(ans,x = ~Time_Spent, y = ~X0, type = 'scatter', mode = 'lines', name = 'Working for Company', fill = 'tozeroy')
+fig <- fig %>% add_trace(y = ~X1, name = 'Left the Company', fill = 'tozeroy')
+fig <- fig %>% layout(xaxis = list(title = 'Time Worked'),
+         yaxis = list(title = 'Count'))
+fig
+```
+
+# Naive Bayes
+```{r, echo=TRUE}
+library(naivebayes)
+library(dplyr)
+library(ggplot2)
+library(psych)
+
+data$left<-as.factor(data$left)
+#data$rank<-as.factor(data$rank)
+str(data)
+dataNB<-data[2:11]
+
+#pairs.panels(data) 
+
+#cor(data$gre,data$gpa)
+set.seed(234)
+smpl<-sample(2,nrow(dataNB),replace=T,prob=c(0.8,0.2))
+
+train<-dataNB[smpl==1,]
+test<-dataNB[smpl==2, ]
+mdl<-naive_bayes(left~ .,data=train)
+#mdl
+```
+
+## NB Plot and Prediction
+```{r, echo=TRUE}
+plot(mdl)
+p<-predict(mdl,train,type='prob')
+head(cbind(p,train))
+p1<-predict(mdl,train)
+(tab1<-table(p1,train$left))
+accuracy=sum(diag(tab1))/sum(tab1)
+accuracy
+```
+
+## Accuracy : [1] 0.7914652
+
+
+## DT MODEL
+```{r}
+#install.packages("rpart.plot")
+library(rpart.plot)
+set.seed(234)
+dataDT=data[2:11]
+smpl<-sample(2,nrow(dataDT),replace=T,prob=c(0.8,0.2))
+train<-dataDT[smpl==1,]
+test<-dataDT[smpl==2, ]
+
+fit <- rpart(left~., data = train, method = 'class')
+rpart.plot(fit, extra = 106)
+
+```
+
+## Prediction
+```{r}
+predict_unseen <-predict(fit, test, type = 'class')
+table_mat <- table(test$left, predict_unseen)
+table_mat
+accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
+accuracy_Test
+```
+
+## Accuracy: [1] 0.9720093
