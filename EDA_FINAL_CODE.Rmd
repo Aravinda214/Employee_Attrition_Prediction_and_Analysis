@@ -1,0 +1,489 @@
+---
+title: "EDA_FINAL_CODE"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Import Dataset
+```{r, echo=TRUE}
+data <- read.csv('HR_Employee_Data.csv')
+```
+
+# Import Libraries
+```{r, echo=TRUE}
+library(tidyverse)
+library(plotly)
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(hrbrthemes)
+library(highcharter)
+library(randomForest)
+library(e1071)
+library(caret)
+library(kernlab)
+library(caTools)
+
+library(plotly)
+library(corrly)
+library(ecodist)
+library(naivebayes)
+library(psych)
+library(rpart.plot)
+library(ggcorrplot)
+
+library(ROCR) 
+library(class)
+#install.packages("ggcorrplot")
+#install.packages("ROCR")
+#install.packages("rpart.plot")
+#install.packages('ecodist')
+#install.packages("remotes")
+#remotes::install_github("kmaheshkulkarni/corrly")
+#install.packages("hrbrthemes")
+#install.packages("highcharter")
+#install.packages("kernlab")
+#install.packages("caTools")
+
+```
+
+# Summary of the Data
+```{r, echo=TRUE}
+head(data)
+str(data)
+#glimpse(data)
+summary(data)
+```
+
+
+# Check for Null Values
+```{r, echo=TRUE}
+cbind(lapply(lapply(data, is.na), sum))
+sum(is.na(data))
+```
+
+# Data Cleaning
+```{r}
+data$satisfaction_level<-gsub("%","",as.character(data$satisfaction_level))
+data$satisfaction_level=as.integer(data$satisfaction_level)
+head(data)
+```
+
+
+```{r, echo=TRUE}
+data$last_evaluation<-gsub("%","",as.character(data$last_evaluation))
+data$last_evaluation=as.integer(data$last_evaluation)
+head(data)
+```
+
+#Renaming the Column name in Dataframe
+```{r,echo=TRUE}
+data <- data %>%
+  rename(Emp_Id=ï..Emp_Id )
+head(data)
+
+```
+
+# 1)Correlation plot
+```{r, echo=TRUE}
+
+corr <- round(cor(data[2:9]), 1)
+ggcorrplot(corr, lab = TRUE)
+
+```
+
+# 2) People who have left in each department
+```{r, echo=TRUE}
+
+ans=crosstab(data$Department,data$left)
+Department=rownames(ans)
+fig <- plot_ly(ans,x = ~Department, y = ~X0, type = 'bar', name = 'Working for Company')
+fig<- fig %>% add_trace(y =~X1, name = 'Left the Company')
+fig <- fig %>% layout(title="Employees who have left based on department", yaxis = list(title = 'Count'), barmode = 'group')
+fig
+```
+
+# 3) People who have left based on salary
+```{r, echo=TRUE}
+
+ans=crosstab(data$salary,data$left)
+Salary=rownames(ans)
+fig <- plot_ly(ans,x = ~Salary, y = ~X0, type = 'bar', name = 'Working for Company')
+fig<- fig %>% add_trace(y =~X1, name = 'Left the Company')
+fig <- fig %>% layout(title="Employees who have left based on salary", yaxis = list(title = 'Count'), barmode = 'group')
+fig
+```
+
+# 4) Area plot of time spent in company compared with those who have nand have not left 
+```{r, echo=TRUE}
+ans=crosstab(data$time_spend_company,data$left)
+ans
+Time_Spent=rownames(ans)
+Time_Spent
+fig <- plot_ly(ans,x = ~Time_Spent, y = ~X0, type = 'scatter', mode = 'lines', name = 'Working for Company', fill = 'tozeroy')
+fig <- fig %>% add_trace(y = ~X1, name = 'Left the Company', fill = 'tozeroy')
+fig <- fig %>% layout(xaxis = list(title = 'Time Worked'),
+         yaxis = list(title = 'Count'))
+fig
+```
+
+# 5) Average monthly working hours according to department
+```{r, error=TRUE}
+df <- data
+head(df)
+str(df)
+data1 <- df%>%
+  group_by(Department)%>%
+  summarize(Avg_hrs = mean(average_montly_hours))
+
+fig <- plot_ly(data1, x = ~Department, y = ~Avg_hrs, type = 'bar', color = I("dark blue"))
+fig <- fig %>% layout(title = "Average monthly working hours according to department",
+         xaxis = list(title = "Department"),
+         yaxis = list(title = "Average monthly working hours"))
+fig
+#ggplot(df,aes(x=number_project,y=average_montly_hours))+geom_jitter(aes(color=Department))
+```
+
+## 6) Number of work accidents for each department
+```{r, error=TRUE}
+data2 <- df%>%
+  filter(Work_accident==1)%>%
+  group_by(Department)%>%
+  summarize(No_of_wa = n())%>%
+  arrange(No_of_wa)
+head(data2)
+hc <- data2 %>% 
+  hchart('line', hcaes(x = Department, y = No_of_wa))%>%
+  hc_title(text = "Number of work accidents for each department")%>%
+  hc_yAxis(title = "Number of work accidents")
+hc
+```
+
+## 7) Density plot of satisfaction level according to salary
+```{r, error=TRUE}
+
+l <- df %>% filter(salary == "low")
+m <- df %>% filter(salary == "medium")
+h <- df %>% filter(salary == "high")
+hc2 <- hchart(
+  density(l$satisfaction_level), type = "area", 
+  color = "steelblue", name = "Low Salary"
+  ) %>%
+  hc_add_series(
+    density(m$satisfaction_level), type = "area",
+    color = "#B71C1C", 
+    name = "Medium Salary"
+    )%>%
+  hc_add_series(
+    density(h$satisfaction_level), type = "area",
+    color = "yellow", 
+    name = "High Salary"
+    )%>%
+  hc_title(text = "Density plot of satisfaction level according to salary")%>%
+  hc_xAxis(title = "Satisfaction Level (0-100)")
+hc2
+```
+
+## 8) Time spent per Department
+```{r, error=TRUE}
+
+fig <- plot_ly(df, labels = ~Department, values = ~time_spend_company, type = 'pie')
+fig <- fig %>% layout(title = 'Time spent per Department',
+         xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+         yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+fig
+```
+
+## 9) Distribution of Satisfaction level
+
+```{r, echo=TRUE}
+  p <- ggplot(data, aes(x =satisfaction_level))+
+      geom_bar(color="darkblue", fill="lightblue")+
+      ggtitle("Distribution of Satisfaction level") +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1))
+    p
+```
+
+## 10) Number of projects for each department
+```{r, echo=TRUE}
+fig <- plot_ly(data,x=~Department, y=~number_project,color = ~salary,type="bar")
+fig
+```
+
+## 11) Box plot between satisfaction_level and average_montly_hours.
+```{r, echo=TRUE}
+data %>%
+  ggplot(aes(x=satisfaction_level,y=average_montly_hours))+
+  geom_boxplot(fill="lightblue")+
+  xlab("satisfaction_level")+
+  ylab("average_montly_hours")+
+  facet_grid(~salary)
+```
+
+## 12) Salary distribution
+```{r, echo=TRUE}
+fig <- plot_ly(data,labels = ~salary, values = ~time_spend_company,type="pie", textinfo='label+percent')
+fig
+```
+
+## 13) Promotion in last 5 years vs number of projects
+```{r, echo=TRUE}
+fig <- plot_ly(data, x = ~promotion_last_5years, y = ~number_project ,type = 'bar', color=~Department)
+fig
+```
+
+# ML MODELS:
+
+## 1)DT MODEL
+```{r}
+
+set.seed(234)
+dataDT=data[2:11]
+smpl<-sample(2,nrow(dataDT),replace=T,prob=c(0.8,0.2))
+train<-dataDT[smpl==1,]
+test<-dataDT[smpl==2, ]
+fit <- rpart(left~., data = train, method = 'class')
+rpart.plot(fit, extra = 106)
+```
+
+## Prediction
+```{r}
+predict_unseen <-predict(fit, test, type = 'class')
+table_mat <- table(test$left, predict_unseen)
+table_mat
+accuracy_Test <- sum(diag(table_mat)) / sum(table_mat)
+accuracy_Test
+```
+
+### Accuracy: [1] 0.9720093
+
+## 2)Naive Bayes
+```{r, echo=TRUE}
+
+data$left<-as.factor(data$left)
+#data$rank<-as.factor(data$rank)
+str(data)
+dataNB<-data[2:11]
+#pairs.panels(data) 
+#cor(data$gre,data$gpa)
+set.seed(234)
+smpl<-sample(2,nrow(dataNB),replace=T,prob=c(0.8,0.2))
+train<-dataNB[smpl==1,]
+test<-dataNB[smpl==2, ]
+mdl<-naive_bayes(left~ .,data=train)
+#mdl
+```
+
+## NB Prediction
+```{r, echo=TRUE}
+#plot(mdl)
+p<-predict(mdl,train,type='prob')
+head(cbind(p,train))
+p1<-predict(mdl,train)
+(tab1<-table(p1,train$left))
+accuracy=sum(diag(tab1))/sum(tab1)
+accuracy
+```
+
+### Accuracy : [1] 0.7914652
+
+
+## 3)SVM Model
+```{r, error=TRUE}
+df2 <- df
+df2$left <- as.factor(df2$left)
+str(df2)
+df2$Emp_Id <- NULL
+set.seed(234)
+split <- sample.split(df2, SplitRatio = 0.7)
+split
+train <- subset(df2, split == "TRUE")
+test <- subset(df2, split == "FALSE")
+classifier = svm(formula = left ~ .,
+                 data = train,
+                 type = 'C-classification',
+                 kernel = 'linear')
+y_pred = predict(classifier, newdata = test[-7])
+y_train_pred = predict(classifier, newdata = train[-7])
+cm = table(test[, 7], y_pred)
+cm
+cm2 = table(train[, 7], y_train_pred )
+cm2
+sum(diag(cm))/sum(cm)
+```
+
+## Accuracy: [1] 0.7751111
+
+## 4)Random Forest Model
+```{r, error=TRUE}
+# Splitting data in train and test data
+# Fitting Random Forest to the train dataset
+set.seed(120)  # Setting seed
+classifier_RF = randomForest(x = train[-7],
+                             y = train$left,
+                             ntree = 50)
+classifier_RF
+# Predicting the Test set results
+y_pred = predict(classifier_RF, newdata = test[-7])
+# Confusion Matrix
+confusion_mtx = table(test[, 7], y_pred)
+confusion_mtx
+# Plotting model
+plot(classifier_RF)
+# Importance plot
+importance(classifier_RF)
+# Variable importance plot
+varImpPlot(classifier_RF)
+
+sum(diag(confusion_mtx))/sum(confusion_mtx)
+```
+
+### Accuracy: [1] 0.9888889
+
+## 5)Logistic Regression
+```{r, echo=TRUE}
+# Loading package
+
+
+set.seed(234)   
+# Splitting dataset
+split <- sample.split(data, SplitRatio = 0.8)
+split
+   
+train<- subset(data[2:11], split == "TRUE")
+test<- subset(data[2:11], split == "FALSE")
+   
+# Training model
+logistic_model <- glm(left ~ satisfaction_level + last_evaluation, data = train, family = "binomial")
+logistic_model
+   
+# Summary
+summary(logistic_model)
+   
+# Predict test data based on model
+predict<- predict(logistic_model,test, type = "response")
+#predict  
+
+# Changing probabilities
+predict<- ifelse(predict>0.5, 1, 0)
+   
+# Evaluating model accuracy
+# using confusion matrix
+table(test$left, predict)
+   
+missing_classerr <- mean(predict != test$left)
+print(paste('Accuracy =', 1 - missing_classerr))
+   
+# ROC-AUC Curve
+ROCPred <- prediction(predict, test$left) 
+ROCPer <- performance(ROCPred, measure = "tpr", x.measure = "fpr")
+   
+auc <- performance(ROCPred, measure = "auc")
+auc <- auc@y.values[[1]]
+auc
+   
+# Plotting curve
+plot(ROCPer)
+plot(ROCPer, colorize = TRUE,print.cutoffs.at = seq(0.1, by = 0.1),main = "ROC CURVE")
+abline(a = 0, b = 1)
+   
+auc <- round(auc, 4)
+legend(.6, .4, auc, title = "AUC", cex = 1)
+
+```
+
+### Accuracy :  0.771149144254279
+
+## 6)KNN
+```{r, echo=TRUE}
+f=data$left
+data = subset(data, select = -c(left) )
+data$left <- f
+data_df<-data
+data$Department= as.numeric(as.factor(data$Department))
+data$salary= as.numeric(as.factor(data$salary))
+head(data_df)
+set.seed(123)
+split <- sample.split(data, SplitRatio = 0.7)
+train_cl <- subset(data, split == "TRUE")
+test_cl <- subset(data, split == "FALSE")
+  
+# Feature Scaling
+train<- scale(train_cl[, 2:10])
+test<- scale(test_cl[, 2:10])
+
+
+# Fitting KNN Model 
+# to training dataset
+# K = 3
+classifier_knn <- knn(train = train,
+                      test = test,
+                      cl = train_cl$left,
+                      k = 3)
+
+# Confusiin Matrix
+cm <- table(test_cl$left, classifier_knn)
+cm
+
+# Model Evaluation - Choosing K
+# Calculate out of Sample error
+misClassError <- mean(classifier_knn != test_cl$left)
+print(paste('Accuracy =', 1-misClassError))
+ 
+```
+
+### Accuracy: 0.949761
+
+
+### KNN prediction
+```{r, echo=TRUE}
+#head(data)
+satisfaction_level<-57
+last_evaluation<-34
+number_project<-3
+average_montly_hours<-130
+time_spend_company<-3
+Work_accident<-0
+promotion_last_5years<-1
+
+s1<-levels(factor(data_df$Department))
+s1
+s2<-as.numeric(levels(factor(data$Department)))
+s2
+Department<-"IT"
+p<-as.numeric(match(Department,s1))
+Department=s2[p]
+Department
+
+
+a1<-levels(factor(data_df$salary))
+a1
+a2<-as.numeric(levels(factor(data$salary)))
+a2
+salary<-"medium"
+p1<-as.numeric(match(salary,a1))
+salary=a2[p1]
+salary
+
+l1<-levels(factor(data_df$left))
+l1
+l2<-as.numeric(levels(factor(data$left)))
+l2
+
+x=c(satisfaction_level,last_evaluation,number_project,average_montly_hours,time_spend_company,Work_accident,promotion_last_5years,Department,salary)
+
+classifier_knn <- knn(train = train,
+                      test = test,
+                      cl = train_cl$left,
+                      k = 3)
+
+
+z<-knn(train=train_cl[,2:10],test = x,cl = train_cl$left, k = 3)
+z1<-as.numeric(match(z,l2))
+cat("Left :",l2[z1])
+```
+
+
