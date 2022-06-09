@@ -58,10 +58,10 @@ Random forest is a Supervised Machine Learning Algorithm that is used widely in 
 ![image](https://user-images.githubusercontent.com/68860525/172796172-3ba7a7c5-ad95-417d-b59d-68bb251ef864.png)
 ![image](https://user-images.githubusercontent.com/68860525/172796197-92709e0c-e884-4f35-84b0-a72c08df649b.png)
 
-## Dashboard for Prediction 
+## Dashboard for Prediction: Model predicting that the employee will not leave the company
 ![image](https://user-images.githubusercontent.com/68860525/172796269-34e74683-b382-496c-8f76-e9a99f7606d1.png)
-## Model predicting that the employee will not leave the company
-![image](https://user-images.githubusercontent.com/68860525/172796311-f97a8356-5db7-466e-87d8-bda5e3c15392.png)
+
+<!-- ![image](https://user-images.githubusercontent.com/68860525/172796311-f97a8356-5db7-466e-87d8-bda5e3c15392.png) -->
 
 # Conclusion 
 All models were coded and executed with the standard parameters, the results were then tabulated for comparison. Random forest has the highest accuracy of 98.8%,Decision tree gave a accuracy of 97.2%, KNN gave a accuracy of 94.9%, Naive Bayes gave a accuracy of 79.1%, Support Vector Machine tree gave a accuracy of 97.2%, while Logistic Regression has the lowest with 77.1%. Upon observing the accuracies of other models, tree based machine learning models gave the  highest accuracies. Hence tree based models are best suited for employee attrition prediction. It is hence important for organizations to cater to the needs of every employee, by providing them with a proper remuneration,promotions,regulated work schedule, safety measures and other benefits to keep them satisfied, and prevent attrition.
